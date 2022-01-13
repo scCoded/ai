@@ -1,0 +1,3 @@
+food(x) & food(y) -> pair(x,y)
+-(food(x) & food(y) -> pair(x,y))
+food(fish) & food(chips)

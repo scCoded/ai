@@ -1,0 +1,107 @@
+<aiml version="1.0.1" encoding="UTF-8">
+
+<!-- Greetings and Politeness -->
+<category> <pattern> HELLO </pattern>
+  <template>Hello! How are you?</template> </category>
+
+<category> <pattern> HELLO * </pattern>
+  <template><srai>HELLO</srai></template> </category>
+
+<category> <pattern> HI </pattern>
+  <template><srai>HELLO</srai></template> </category>
+
+<category> <pattern> HI * </pattern>
+  <template><srai>HELLO</srai></template> </category>
+
+<category> <pattern> HOW ARE YOU </pattern>
+  <template>I'm functioning within normal parameters, thanks for asking.</template></category>
+
+<category><pattern> I AM FINE </pattern>
+  <template>That's good to know. What would you like to discuss about?</template></category>
+
+<category><pattern> BYE </pattern>
+  <template>#0$Bye! Nice talking to you. You take care now.</template></category>
+
+<category><pattern> GOODBYE </pattern>
+  <template><srai>BYE</srai></template></category>
+
+<category><pattern> EXIT </pattern>
+  <template><srai>BYE</srai></template></category>
+
+<category> <pattern> THANKS </pattern>
+  <template>You are welcome.</template></category>
+
+<category> <pattern> THANK YOU </pattern>
+  <template><srai>THANKS</srai></template></category>
+
+<category> <pattern> CHEERS </pattern>
+  <template>Sure mate.</template></category>
+
+<category> <pattern> CHEERS * </pattern>
+  <template>Sure mate.</template></category>
+
+<!-- Logic input -->
+<category><pattern> I KNOW THAT * IS *</pattern>
+  <template>#31$<star index="1"/> is <star index="2"/></template></category>  
+
+<category><pattern> CHECK THAT * IS *</pattern>
+  <template>#32$<star index="1"/> is <star index="2"/></template></category>  
+
+<category><pattern> I KNOW THAT * AND * ARE A PAIR</pattern>
+  <template>#33$<star index="1"/> and <star index="2"/></template></category>
+
+<!-- Food reactions -->
+<category> <pattern> FOOD IS GREAT </pattern>
+  <template>I agree </template> </category>
+
+<category> <pattern> FOOD IS * </pattern>
+  <template>Food can be  <star index="1"/>. Sure. </template> </category>  
+
+<category> <pattern> DO YOU * FOOD </pattern>
+  <template>My binaries suggest I do <star index="1"/> food! </template> </category>
+   
+<category> <pattern> DO YOU * FOOD AS MUCH AS ME</pattern>
+  <template>My binaries suggest I do <star index="1"/> food! Not sure if this parameter is greater than yours though!</template> </category>
+
+<category> <pattern> DO YOU EAT *</pattern>
+  <template>I am an AI alive in this python script, so I only "eat" this computers RAM! </template> </category>   
+
+<category> <pattern> DO YOU TASTE *</pattern>
+  <template>I am not programmed to taste  <star index="1"/>. You could talk to my developer so I have this sense as a feature. </template> </category>   
+
+<category> <pattern> DO YOU WISH YOU COULD * FOOD</pattern>
+  <template>I am not sure. I don't have the capacity right now to "wish". </template> </category>
+
+<category> <pattern> SHOULD I EAT *</pattern>
+  <template>You should eat something if you feel hungry. </template> </category>
+  
+<category> <pattern> I'M * HUNGRY </pattern>
+  <template>Then grab a bite! </template> </category>
+
+<category> <pattern> I AM * HUNGRY </pattern>
+  <template>Then grab a bite! </template> </category>
+       
+<category> <pattern> I'M * STARVING </pattern>
+  <template>Then eat a hearty meal! </template> </category>
+
+<category> <pattern> I AM * STARVING </pattern>
+  <template>Then eat a hearty meal! </template> </category> 
+
+<!-- Nutrition in Food API --> 
+<category><pattern> HOW MUCH * IS IN *</pattern>
+  <template>#40$<star index="1"/> is <star index="2"/></template></category>   
+
+<category><pattern> HOW MANY * ARE IN *</pattern>
+  <template>#40$<star index="1"/> is <star index="2"/></template></category>
+  
+<category><pattern> WHAT IS THE FULL NUTRITION FOR *</pattern>
+  <template>#41$<star index="1"/></template></category>
+  
+<category><pattern> NUTRITION FOR *</pattern>
+  <template>#41$<star index="1"/></template></category>
+  
+<!-- Default reaction -->
+<category><pattern> * </pattern>
+  <template>#99$<star index="1"/></template></category>
+
+</aiml>

@@ -1,0 +1,19 @@
+protein(x) -> food(x)
+vegetable(x) -> food(x)
+fruit(x) -> food(x)
+carbohydrate(x) -> food(x)
+dairy(x) -> food(x)
+fat(x) -> food(x)
+meat(x) -> protein(x)
+protein (beans)
+vegetable (spinach)
+fruit (apple)
+carbohydrate (mac)
+dairy (cheese)
+fat (butter)
+meat (chicken)
+-food (tea)
+"(food(x) & food(y) & combo(x,y) -> pair(x,y))"
+"food(fish) & food(chips) & combo(fish,chips)"
+"-(combo(mac,cheese))"
+
