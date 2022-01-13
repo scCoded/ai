@@ -20,6 +20,8 @@ from fuzzywuzzy import process
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from nltk.corpus import wordnet as wn
+import string
 
 read_expr = logic.Expression.fromstring
 
@@ -27,42 +29,27 @@ read_expr = logic.Expression.fromstring
 #######################################################
 #  Initialise Knowledgebase(s) and check the consistency
 #######################################################
-kb = []
-kb2 = []
 
-kb3 = []
+kb = []
 df = pd.read_csv("kb_final.csv", header=None)
 data = pd.read_csv("SampleQA.csv").dropna()
 data.head()
-[kb3.append(read_expr(row)) for row in df[0]]
-
-#for i in range(0,len(kb3)):
-#    expr = kb3[i] 
-#    tempKb = kb3[:]
-#    tempKb.pop(i)
-#    print(expr)
-   # print(ResolutionProver().prove(expr, tempKb, verbose=False))
-
-#def load_and_check_kb(file_name, knowledgebase):
-#    with open(file_name) as file:
-#        lines = (line.rstrip() for line in file)
-#        lines = (line for line in lines if line)
-#        for line in lines:
-#            knowledgebase.append((read_expr(line)))
-#    for expr in knowledgebase:
-         
-#        if not is_consistent:
-#           sys.exit("The Knowledgebase is not consistent - Please remove any contradictions and run this program again.")
-
+[kb.append(read_expr(row)) for row in df[0]]
 
 print("Please wait a moment while the integrity of the KB file checked...")
-#load_and_check_kb("kb.csv", kb)    
-#load_and_check_kb("kb_extra.csv", kb2)
 
-if Mace(end_size=50).build_model(None, kb3) == False :
+if Mace(end_size=50).build_model(None, kb) == False :
    sys.exit("The Knowledgebase is not consistent - Please remove any contradictions and run this program again.")
 
+#loading data lists to match user input to for fuzzy matching
 food_groups =  ["food", "protein", "vegetable", "fruit", "carbohydrate", "dairy", "fat", "meat"]
+synset1 = wn.synset('food.n.01')
+synset2 = wn.synset('food.n.02')
+common_foods = list(set([w for s in synset1.closure(lambda s:s.hyponyms()) for w in s.lemma_names()]))
+common_foods += list(set([w for s in synset2.closure(lambda s:s.hyponyms()) for w in s.lemma_names()]))
+alphabet_list = list(string.ascii_uppercase)
+common_foods = [item for item in common_foods if item not in alphabet_list]
+print(common_foods)
 #######################################################
 #  Initialise QA Pairs
 #######################################################
@@ -80,6 +67,8 @@ kern.bootstrap(learnFiles="mybot-logic.xml")
 #  Initialise Nutrition API URL
 #######################################################
 url = "https://api.edamam.com/api/nutrition-data?app_id=a4db010c&app_key=%20059652af8242eb8f8c2d06ad34b95437&nutrition-type=logging&ingr="
+
+#loading dictionary to match user input to for fuzzy matching. Compares to key, returns value (api param).
 nutrients = {"calories": "ENERC_KCAL", 
      "carbs" : "CHOCDF", 
      "carbohydrates": "CHOCDF",
@@ -94,22 +83,24 @@ print("Welcome to this chat bot. Please feel free to ask questions from me!")
 # Main loop
 #######################################################
     
-def validate_expression(knowledgebase, object, subject):
+def validate_expression(object, subject):
     expr = read_expr((subject + "(" + object + ")").lower())
     print(expr)
-    is_valid_expression = Prover9Command(expr, assumptions=knowledgebase).prove()
-    #is_valid_expression = ResolutionProver().prove(expr, knowledgebase, verbose=False)
+    is_valid_expression = Prover9Command(expr, assumptions=kb).prove()
     return is_valid_expression
 
 def get_fuzzy_match(word, data):
     choices = []
     for key in data:
         choices.append(key)
-    result = process.extractOne(word, choices)
-    if word.find("not ") != -1:
-        return "not " + result[0]
+    result, score = process.extractOne(word, choices)
+    if score > 80:
+        if word.find("not ") != -1:
+            return "not " + result
+        else:
+            return result
     else:
-        return result[0]
+        return word
 
 while True:
     # get user input
@@ -130,57 +121,59 @@ while True:
         # Task B
         elif cmd == 31:  # if input pattern is "I know that * is *"
             object, subject = params[1].split(" is ")
+            object = get_fuzzy_match(object, common_foods)
             subject = get_fuzzy_match(subject, food_groups)
-            if validate_expression(kb3, object, subject):
+            if validate_expression(object, subject):
                 print("I already knew that")
             else:
                 #Check reverse expression to prove if there is an rule in knowledgebase (or not) that disproved original expression
-                if validate_expression(kb3, object, ("not " + subject)):
+                if validate_expression(object, ("not " + subject)):
                     print("I can see that is not true")
                 else:
                     print("OK, I will remember that", object, "is a", subject)
                     kb.append(read_expr(subject + "(" + object + ")"))
         elif cmd == 32:  # if the input pattern is "check that * is *"
             object, subject = params[1].split(" is ")
+            object = get_fuzzy_match(object, common_foods)
             subject = get_fuzzy_match(subject, food_groups)
-            if validate_expression(kb3, object, subject):
+            if validate_expression(object, subject):
                 print("Correct")
             else:
                 #Check reverse expression to prove if there is an rule in knowledgebase (or not) that disproved original expression
-                if validate_expression(kb3, object, ("not " + subject)):
+                if validate_expression(object, ("not " + subject)):
                     print("Incorrect")
                 else:
                     print("I'm not sure...")
         elif cmd == 33: # if input pattern is "I know that * and * are a pair"
             first, second = params[1].split(" and ")
+            first = get_fuzzy_match(first, common_foods)
+            second = get_fuzzy_match(second, common_foods)
             objects = first + "," + second
-            #if validate_expression(kb3, objects, "pair"):
-            text_expr = read_expr("food(" + first + ")")
-            print("here")
-            print(ResolutionProverCommand(text_expr, kb3).prove())
-            if validate_expression(kb3, first, "food") and validate_expression(kb3, second, "food"):
-                expr = read_expr(("pair" + "(" + objects + ")").lower())
-                if Mace(end_size=50).build_model(expr, kb3) == False:
+            if (validate_expression(first, "food") and validate_expression(second, "food")):
+                if validate_expression(objects, "pair"):
                     print("I already know that " + params[1] + " are a classic combination.")
                 else:
                     print("That new combo has been added!")
-                    kb3.append(read_expr("food(" + first + ") & food(" + second + ")"))
-                    kb3.append(read_expr("combo(" + objects + ")"))
+                    kb.append(read_expr("food(" + first + ") & food(" + second + ")"))
+                    kb.append(read_expr("combo(" + objects + ")"))
             else:
                print("Please use the input pattern 'I know that * is *' - To categorise these items as food before making them a pair.")
         elif cmd == 40: # if input pattern is "how much * is in *" or "how many * are in *"
             nutrient, food = params[1].split(" is ")
             label = get_fuzzy_match(nutrient, nutrients)
+            food = get_fuzzy_match(food, common_foods)
             key = nutrients.get(label)
-            response = requests.get(url + food.replace(" ", "+"))
+            response = requests.get(url + food.replace("_", "+").replace("-", "+"))
             try:
                 nutrient_data = response.json()["totalNutrients"][key]
+                food = food.replace("_", " ").replace("-", " ")
                 print("Amount of " + label +  " in " + food + " is: " + str(round(nutrient_data["quantity"])) + nutrient_data["unit"])
             except KeyError:
                 print("That food was not found. Check spelling.")
         elif cmd == 41: # if input pattern is "what is the full nutrition for *" or "nutrition for *"
            food = user_input.split("for ",1)[1]
-           response = requests.get(url + food.replace(" ", "+"))
+           food = get_fuzzy_match(food, common_foods)
+           response = requests.get(url + food.replace("_", "+").replace("-", "+"))
            nutrient_data = response.json()
            percentages = []
            labels = []
@@ -194,6 +187,7 @@ while True:
            
            plt.xlabel('Nutrient')
            plt.ylabel('Percentage (%)')
+           food = food.replace("_", " ").replace("-", " ")
            plt.title('Nutrients percentage against the recommended daily for ' + food)
            plt.bar(range(len(percentages)), percentages)
            plt.show()
