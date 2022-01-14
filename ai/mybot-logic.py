@@ -5,15 +5,7 @@ Basic chatbot design --- for your own modifications - rework task A
 """
 import aiml
 import requests
-from nltk.sem.logic import *
-from nltk.inference.resolution import *
-from nltk.sem import Expression
-from nltk.inference import ResolutionProver
-import nltk.inference.resolution as res
-from nltk.inference.nonmonotonic import *
-from nltk.inference.api import *
 from nltk import *
-from nltk.sem import logic
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from fuzzywuzzy import process
@@ -23,7 +15,7 @@ import numpy as np
 from nltk.corpus import wordnet as wn
 import string
 
-read_expr = logic.Expression.fromstring
+read_expr = sem.logic.Expression.fromstring
 
 
 #######################################################
@@ -49,7 +41,6 @@ common_foods = list(set([w for s in synset1.closure(lambda s:s.hyponyms()) for w
 common_foods += list(set([w for s in synset2.closure(lambda s:s.hyponyms()) for w in s.lemma_names()]))
 alphabet_list = list(string.ascii_uppercase)
 common_foods = [item for item in common_foods if item not in alphabet_list]
-print(common_foods)
 #######################################################
 #  Initialise QA Pairs
 #######################################################
@@ -216,7 +207,11 @@ while True:
                     max_score = cosine_score
                     j = i          
             if max_score == 0:
+                fuzzy_question = get_fuzzy_match(user_input,qa_questions)
+                index = qa_questions.index[fuzzy_question]
+                print(qa_answers[index])
                 print("Hey I don't understand what you just wrote to me")
+                
             else:
                 print(answers[j-1])
             
