@@ -37,17 +37,16 @@ data.head()
 [kb.append(read_expr(row)) for row in df[0]]
 
 for expr in kb:
-    is_valid = ResolutionProver().prove(expr, kb, verbose=False)
-    reverse_is_valid = ResolutionProver().prove(-expr, kb, verbose=False)
-    if is_valid and reverse_is_valid:
+    is_valid = ResolutionProver().prove(None, kb, verbose=False)
+    if is_valid:
        sys.exit("The Knowledgebase is not consistent - Please remove any contradictions and run this program again.")
 
 print("Please wait a moment while the integrity of the KB file checked...") 
 
-#if Mace(end_size=50).build_model(None, kb) == False :
- #  sys.exit("The Knowledgebase is not consistent - Please remove any contradictions and run this program again.")
+if Mace(end_size=50).build_model(None, kb) == False :
+   sys.exit("The Knowledgebase is not consistent - Please remove any contradictions and run this program again.")
 
-food_groups =  ["food", "protein", "vegetable", "fruit", "carbohydrate", "dairy", "fat", "meat"]
+food_groups =  ["food", "protein", "vegetable", "fruit", "carbohydrate", "dairy", "fat", "meat", "planet"]
 synset1 = wn.synset('food.n.01')
 synset2 = wn.synset('food.n.02')
 common_foods = list(set([w for s in synset1.closure(lambda s:s.hyponyms()) for w in s.lemma_names()]))
