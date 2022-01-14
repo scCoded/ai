@@ -122,7 +122,7 @@ def get_audio():
             text = r.recognize_google(audio_data, language="en-US")
             return(text)
         except:
-            return("unrecognisable")
+            return("BYE")
 
 def print_with_audio(input_type, robot_input):
     if input_type == 'text':
