@@ -153,9 +153,9 @@ while True:
                     if validate_expression(objects, "pair"):
                         print("I already know that " + params[1] + " are a classic combination.")
                     else:
-                        print("That new combo has been added!")
                         kb.append(read_expr("food(" + first + ") & food(" + second + ")"))
                         kb.append(read_expr("combo(" + objects + ")"))
+                        print("That new combo has been added!")
             else:
                 print("Please use the input pattern 'I know that * is *' - To categorise these items as food before making them a pair.")
         elif cmd == 40: # if input pattern is "how much * is in *" or "how many * are in *"
@@ -218,8 +218,8 @@ while True:
             if max_score == 0:
                 try:
                     fuzzy_question = get_fuzzy_match(user_input,qa_questions)
-                    index = qa_questions.index[fuzzy_question]
-                    print(qa_answers[index])
+                    i = questions.index(fuzzy_question)
+                    print("fuzzy answer: "+ answers[i-1])
                 except IndexError:
                     print("Hey I don't understand what you just wrote to me...")
             else:
