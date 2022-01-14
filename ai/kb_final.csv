@@ -1,18 +1,18 @@
-protein(x) -> food(x)
-vegetable(x) -> food(x)
-fruit(x) -> food(x)
-carbohydrate(x) -> food(x)
-dairy(x) -> food(x)
-fat(x) -> food(x)
-meat(x) -> protein(x)
-protein (beans)
-vegetable (spinach)
-fruit (apple)
-carbohydrate (chips)
-dairy (cheese)
-fat (butter)
-meat (chicken)
-meat (fish)
--food (tea)
+"protein(x) -> food(x)"
+"vegetable(x) -> food(x)"
+"fruit(x) -> food(x)"
+"carbohydrate(x) -> food(x)"
+"dairy(x) -> food(x)"
+"fat(x) -> food(x)"
+"meat(x) -> protein(x)"
 "food(x) & food(y) -> pair(x,y)"
+"protein (beans)"
+"vegetable (spinach)"
+"fruit (apple)"
+"carbohydrate (chips)"
+"dairy (cheese)"
+"fat (butter)"
+"meat (chicken)"
+"meat (fish)"
+"-food (tea)"
 "food(fish) & food(chips)"
