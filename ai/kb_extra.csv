@@ -1,3 +1,3 @@
 food(x) & food(y) & combo(x,y) -> pair(x,y)
-combo(x,y) -> pair(x,y)
 food(fish) & food(chips) & combo(fish,chips)
+-combo(butter,chicken)
