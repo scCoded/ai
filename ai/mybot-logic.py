@@ -32,19 +32,15 @@ read_expr = logic.Expression.fromstring
 
 kb = []
 df = pd.read_csv("kb_final.csv", header=None)
-data = pd.read_csv("SampleQA.csv").dropna()
-data.head()
-[kb.append(read_expr(row)) for row in df[0]]
-
-for expr in kb:
-    is_valid = ResolutionProver().prove(None, kb, verbose=False)
-    if is_valid:
-       sys.exit("The Knowledgebase is not consistent - Please remove any contradictions and run this program again.")
 
 print("Please wait a moment while the integrity of the KB file checked...") 
 
-if Mace(end_size=50).build_model(None, kb) == False :
+[kb.append(read_expr(row)) for row in df[0]]
+
+is_valid = ResolutionProver().prove(None, kb, verbose=True)
+if is_valid:
    sys.exit("The Knowledgebase is not consistent - Please remove any contradictions and run this program again.")
+
 
 food_groups =  ["food", "protein", "vegetable", "fruit", "carbohydrate", "dairy", "fat", "meat", "planet"]
 synset1 = wn.synset('food.n.01')
