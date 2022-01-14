@@ -76,8 +76,8 @@ print("Welcome to this chat bot. Please feel free to ask questions from me!")
     
 def validate_expression(object, subject):
     expr = read_expr((subject + "(" + object + ")").lower())
-    print(expr)
     is_valid_expression = Prover9Command(expr, assumptions=kb).prove()
+    print(expr, is_valid_expression)
     return is_valid_expression
 
 def get_fuzzy_match(word, data):
@@ -144,9 +144,12 @@ while True:
                 if validate_expression(objects, "pair"):
                     print("I already know that " + params[1] + " are a classic combination.")
                 else:
-                    print("That new combo has been added!")
-                    kb.append(read_expr("food(" + first + ") & food(" + second + ")"))
-                    kb.append(read_expr("combo(" + objects + ")"))
+                    if validate_expression(objects, "not pair"):
+                        print("I can see that is NOT a tasty combo!")
+                    else:
+                        print("That new combo has been added!")
+                        kb.append(read_expr("food(" + first + ") & food(" + second + ")"))
+                        kb.append(read_expr("combo(" + objects + ")"))
             else:
                print("Please use the input pattern 'I know that * is *' - To categorise these items as food before making them a pair.")
         elif cmd == 40: # if input pattern is "how much * is in *" or "how many * are in *"
@@ -207,14 +210,14 @@ while True:
                     max_score = cosine_score
                     j = i          
             if max_score == 0:
-                fuzzy_question = get_fuzzy_match(user_input,qa_questions)
-                index = qa_questions.index[fuzzy_question]
-                print(qa_answers[index])
-                print("Hey I don't understand what you just wrote to me")
+                try:
+                    fuzzy_question = get_fuzzy_match(user_input,qa_questions)
+                    index = qa_questions.index[fuzzy_question]
+                    print(qa_answers[index])
+                except IndexError:
+                    print("Hey I don't understand what you just wrote to me...")
                 
             else:
                 print(answers[j-1])
-            
-
     else:
         print(answer)
