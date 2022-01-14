@@ -20,6 +20,8 @@ from fuzzywuzzy import process
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from nltk.corpus import wordnet as wn
+import string
 
 read_expr = logic.Expression.fromstring
 
@@ -67,6 +69,12 @@ load_and_check_kb("kb_extra.csv", kb2)
  #  sys.exit("The Knowledgebase is not consistent - Please remove any contradictions and run this program again.")
 
 food_groups =  ["food", "protein", "vegetable", "fruit", "carbohydrate", "dairy", "fat", "meat"]
+synset1 = wn.synset('food.n.01')
+synset2 = wn.synset('food.n.02')
+common_foods = list(set([w for s in synset1.closure(lambda s:s.hyponyms()) for w in s.lemma_names()]))
+common_foods += list(set([w for s in synset2.closure(lambda s:s.hyponyms()) for w in s.lemma_names()]))
+alphabet_list = list(string.ascii_uppercase)
+common_foods = [item for item in common_foods if item not in alphabet_list]
 #######################################################
 #  Initialise QA Pairs
 #######################################################
@@ -108,11 +116,14 @@ def get_fuzzy_match(word, data):
     choices = []
     for key in data:
         choices.append(key)
-    result = process.extractOne(word, choices)
-    if word.find("not ") != -1:
-        return "not " + result[0]
+    result, score = process.extractOne(word, choices)
+    if score > 80:
+        if word.find("not ") != -1:
+            return "not " + result
+        else:
+            return result
     else:
-        return result[0]
+        return word
 
 while True:
     # get user input
@@ -133,6 +144,7 @@ while True:
         # Task B
         elif cmd == 31:  # if input pattern is "I know that * is *"
             object, subject = params[1].split(" is ")
+            object = get_fuzzy_match(object, common_foods)
             subject = get_fuzzy_match(subject, food_groups)
             if validate_expression(kb, object, subject):
                 print("I already knew that")
@@ -145,6 +157,7 @@ while True:
                     kb.append(read_expr(subject + "(" + object + ")"))
         elif cmd == 32:  # if the input pattern is "check that * is *"
             object, subject = params[1].split(" is ")
+            object = get_fuzzy_match(object, common_foods)
             subject = get_fuzzy_match(subject, food_groups)
             if validate_expression(kb, object, subject):
                 print("Correct")
@@ -156,30 +169,37 @@ while True:
                     print("I'm not sure...")
         elif cmd == 33: # if input pattern is "I know that * and * are a pair"
             first, second = params[1].split(" and ")
+            first = get_fuzzy_match(first, common_foods)
+            second = get_fuzzy_match(second, common_foods)
             objects = first + "," + second
-            if validate_expression(kb, first, "food") and validate_expression(kb, second, "food"):
-                expr = read_expr(("pair" + "(" + objects + ")").lower())
-                if validate_expression(kb, objects, "pair"):
+            if (validate_expression(kb, first, "food") and validate_expression(kb, second, "food")):
+                if validate_expression(objects, "pair"):
                     print("I already know that " + params[1] + " are a classic combination.")
                 else:
-                    print("That new combo has been added!")
-                    kb.append(read_expr("food(" + first + ") & food(" + second + ")"))
-                    kb.append(read_expr("combo(" + objects + ")"))
+                    if validate_expression(kb, objects, "not pair"):
+                        print("I can see that is NOT a tasty combo!")
+                    else:
+                        print("That new combo has been added!")
+                        kb.append(read_expr("food(" + first + ") & food(" + second + ")"))
+                        kb.append(read_expr("combo(" + objects + ")"))
             else:
-               print("Please use the input pattern 'I know that * is *' - To categorise these items as food before making them a pair.")
+                print("Please use the input pattern 'I know that * is *' - To categorise these items as food before making them a pair.")
         elif cmd == 40: # if input pattern is "how much * is in *" or "how many * are in *"
-            nutrient, food = params[1].split(" is ")
-            label = get_fuzzy_match(nutrient, nutrients)
-            key = nutrients.get(label)
-            response = requests.get(url + food.replace(" ", "+"))
-            try:
-                nutrient_data = response.json()["totalNutrients"][key]
-                print("Amount of " + label +  " in " + food + " is: " + str(round(nutrient_data["quantity"])) + nutrient_data["unit"])
-            except KeyError:
-                print("That food was not found. Check spelling.")
+           nutrient, food = params[1].split(" is ")
+           label = get_fuzzy_match(nutrient, nutrients)
+           food = get_fuzzy_match(food, common_foods)
+           key = nutrients.get(label)
+           response = requests.get(url + food.replace("_", "+").replace("-", "+"))
+           try:
+               nutrient_data = response.json()["totalNutrients"][key]
+               food = food.replace("_", " ").replace("-", " ")
+               print("Amount of " + label +  " in " + food + " is: " + str(round(nutrient_data["quantity"])) + nutrient_data["unit"])
+           except KeyError:
+               print("That food was not found. Check spelling.")
         elif cmd == 41: # if input pattern is "what is the full nutrition for *" or "nutrition for *"
            food = user_input.split("for ",1)[1]
-           response = requests.get(url + food.replace(" ", "+"))
+           food = get_fuzzy_match(food, common_foods)
+           response = requests.get(url + food.replace("_", "+").replace("-", "+"))
            nutrient_data = response.json()
            percentages = []
            labels = []
@@ -193,6 +213,7 @@ while True:
            
            plt.xlabel('Nutrient')
            plt.ylabel('Percentage (%)')
+           food = food.replace("_", " ").replace("-", " ")
            plt.title('Nutrients percentage against the recommended daily for ' + food)
            plt.bar(range(len(percentages)), percentages)
            plt.show()
@@ -221,10 +242,13 @@ while True:
                     max_score = cosine_score
                     j = i          
             if max_score == 0:
-                print("Hey I don't understand what you just wrote to me")
+                try:
+                    fuzzy_question = get_fuzzy_match(user_input,qa_questions)
+                    index = qa_questions.index[fuzzy_question]
+                    print(qa_answers[index])
+                except IndexError:
+                    print("Hey I don't understand what you just wrote to me...")
             else:
                 print(answers[j-1])
-            
-
     else:
         print(answer)
