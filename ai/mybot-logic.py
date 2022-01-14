@@ -157,11 +157,11 @@ while True:
             second = get_fuzzy_match(second, common_foods)
             objects = first + "," + second
             if (validate_expression(kb1, first, "food") and validate_expression(kb1, second, "food")):
-                if validate_expression(kb2, objects, "pair"):
-                    print("I already know that " + params[1] + " are a classic combination.")
+                if validate_expression(kb2, objects, "not combo"):
+                    print("I can see that is NOT a tasty combo!")
                 else:
-                    if validate_expression(kb2, objects, "not pair"):
-                        print("I can see that is NOT a tasty combo!")
+                    if validate_expression(kb2, objects, "pair"):
+                        print("I already know that " + params[1] + " are a classic combination.")
                     else:
                         print("That new combo has been added!")
                         kb2.append(read_expr("food(" + first + ") & food(" + second + ")"))

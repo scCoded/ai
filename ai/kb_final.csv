@@ -8,10 +8,11 @@ meat(x) -> protein(x)
 protein (beans)
 vegetable (spinach)
 fruit (apple)
-carbohydrate (mac)
+carbohydrate (chips)
 dairy (cheese)
 fat (butter)
 meat (chicken)
--food (tidepods)
+meat (fish)
+-food (tea)
 "food(x) & food(y) -> pair(x,y)"
 "food(fish) & food(chips)"
