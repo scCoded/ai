@@ -9,7 +9,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from fuzzywuzzy import process
 import matplotlib.pyplot as plt
-import numpy as np
 import time
 import speech_recognition as sr
 from gtts import gTTS
@@ -20,25 +19,24 @@ read_expr = logic.Expression.fromstring
 #######################################################
 #  Initialise Knowledgebase(s) and check the consistency
 #######################################################
-
 kb = []
-df = pd.read_csv("kb_final.csv", header=None)
+df = pd.read_csv("kb.csv", header=None)
 
 print("Please wait a moment while the integrity of the KB file checked...") 
 
 [kb.append(read_expr(row)) for row in df[0]]
 
-start = time.time()
+#start = time.time()
 #measuring time of Resolution Prover vs Prover9 
-is_valid = ResolutionProver().prove(None, kb, verbose=False)
-if is_valid:
+"""
+if ResolutionProver().prove(None, kb, verbose=False):
    sys.exit("The Knowledgebase is not consistent - Please remove any contradictions and run this program again.")
 """
 if Prover9Command(assumptions=kb).prove():
    sys.exit("The Knowledgebase is not consistent - Please remove any contradictions and run this program again.")
-"""
-end = time.time()
-print("Time taken: " + str(round(end - start, 3)) + " seconds") 
+
+#end = time.time()
+#print("Time taken: " + str(round(end - start, 3)) + " seconds") 
 
 food_groups =  ["food", "protein", "vegetable", "fruit", "carbohydrate", "dairy", "fat", "meat"]
 synset1 = wn.synset('food.n.01')
@@ -50,7 +48,7 @@ common_foods = [item for item in common_foods if item not in alphabet_list]
 #######################################################
 #  Initialise QA Pairs
 #######################################################
-qa = pd.read_csv("QA.csv").dropna()
+qa = pd.read_csv("QA.csv")
 #######################################################
 #  Initialise AIML agent
 #######################################################
@@ -77,7 +75,7 @@ print("Welcome to this chat bot. Please feel free to ask questions from me!")
 #######################################################
 # Main loop
 #######################################################
-   
+"""
 def validate_expression(object, subject):
     expr = read_expr((subject + "(" + object + ")").lower())
     print(expr)
@@ -89,13 +87,13 @@ def validate_expression(object, subject):
 """
 def validate_expression(object, subject):
     expr = read_expr((subject + "(" + object + ")").lower())
-    print(expr)
-    start = time.time()
+    #print(expr)
+    #start = time.time()
     is_valid_expression = Prover9Command(expr, assumptions=kb).prove()
-    end = time.time()
-    print("Time taken: " + str(round(end - start, 3)) + " seconds") 
+    #end = time.time()
+    #print("Time taken: " + str(round(end - start, 3)) + " seconds") 
     return is_valid_expression
-"""
+
 def get_fuzzy_match(word, data):
     choices = []
     for key in data:
@@ -116,7 +114,7 @@ def get_audio():
     with sr.Microphone() as source:
         try:
             # read the audio data from the default microphone
-            audio_data = r.record(source, duration=5)
+            audio_data = r.record(source, duration=4)
             print("Recognizing...")
             # convert speech to text
             text = r.recognize_google(audio_data, language="en-US")
