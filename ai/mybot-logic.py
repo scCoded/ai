@@ -27,40 +27,44 @@ read_expr = logic.Expression.fromstring
 #######################################################
 #  Initialise Knowledgebase(s) and check the consistency
 #######################################################
-kb = []
-kb2 = []
 
-kb3 = []
-df = pd.read_csv("kb_final.csv", header=None)
+kb = []
+kb1 = []
+kb2 = []
+df = pd.read_csv("kb.csv", header=None)
 data = pd.read_csv("SampleQA.csv").dropna()
 data.head()
-[kb3.append(read_expr(row)) for row in df[0]]
+[kb.append(read_expr(row)) for row in df[0]]
 
-#for i in range(0,len(kb3)):
-#    expr = kb3[i] 
-#    tempKb = kb3[:]
-#    tempKb.pop(i)
-#    print(expr)
-   # print(ResolutionProver().prove(expr, tempKb, verbose=False))
+for i in range(0,len(kb)):
+    expr = kb[i] 
+    tempKb = kb[:]
+    tempKb.pop(i)
+    is_valid = ResolutionProver().prove(expr, tempKb, verbose=False)
+    reverse_is_valid = ResolutionProver().prove(-expr, tempKb, verbose=False)
+    if is_valid and reverse_is_valid:
+      print("The Knowledgebase is not consistent - Please remove any contradictions and run this program again.")
 
-#def load_and_check_kb(file_name, knowledgebase):
-#    with open(file_name) as file:
-#        lines = (line.rstrip() for line in file)
-#        lines = (line for line in lines if line)
-#        for line in lines:
-#            knowledgebase.append((read_expr(line)))
-#    for expr in knowledgebase:
-         
-#        if not is_consistent:
-#           sys.exit("The Knowledgebase is not consistent - Please remove any contradictions and run this program again.")
+def load_and_check_kb(file_name, knowledgebase):
+    with open(file_name) as file:
+        lines = (line.rstrip() for line in file)
+        lines = (line for line in lines if line)
+        for line in lines:
+            knowledgebase.append((read_expr(line)))
+    for expr in knowledgebase:
+        is_valid = ResolutionProver().prove(expr, knowledgebase, verbose=False)
+        reverse_is_valid = ResolutionProver().prove(-expr, knowledgebase, verbose=False)
+        if is_valid and reverse_is_valid:
+           sys.exit("The Knowledgebase is not consistent - Please remove any contradictions and run this program again.")
 
 
 print("Please wait a moment while the integrity of the KB file checked...")
-#load_and_check_kb("kb.csv", kb)    
-#load_and_check_kb("kb_extra.csv", kb2)
+load_and_check_kb("kb.csv", kb1)    
+load_and_check_kb("kb_extra.csv", kb2)
 
-if Mace(end_size=50).build_model(None, kb3) == False :
-   sys.exit("The Knowledgebase is not consistent - Please remove any contradictions and run this program again.")
+
+#if Mace(end_size=50).build_model(None, kb) == False :
+ #  sys.exit("The Knowledgebase is not consistent - Please remove any contradictions and run this program again.")
 
 food_groups =  ["food", "protein", "vegetable", "fruit", "carbohydrate", "dairy", "fat", "meat"]
 #######################################################
@@ -97,8 +101,7 @@ print("Welcome to this chat bot. Please feel free to ask questions from me!")
 def validate_expression(knowledgebase, object, subject):
     expr = read_expr((subject + "(" + object + ")").lower())
     print(expr)
-    is_valid_expression = Prover9Command(expr, assumptions=knowledgebase).prove()
-    #is_valid_expression = ResolutionProver().prove(expr, knowledgebase, verbose=False)
+    is_valid_expression = ResolutionProver().prove(expr, knowledgebase, verbose=False)
     return is_valid_expression
 
 def get_fuzzy_match(word, data):
@@ -131,11 +134,11 @@ while True:
         elif cmd == 31:  # if input pattern is "I know that * is *"
             object, subject = params[1].split(" is ")
             subject = get_fuzzy_match(subject, food_groups)
-            if validate_expression(kb3, object, subject):
+            if validate_expression(kb, object, subject):
                 print("I already knew that")
             else:
                 #Check reverse expression to prove if there is an rule in knowledgebase (or not) that disproved original expression
-                if validate_expression(kb3, object, ("not " + subject)):
+                if validate_expression(kb, object, ("not " + subject)):
                     print("I can see that is not true")
                 else:
                     print("OK, I will remember that", object, "is a", subject)
@@ -143,29 +146,25 @@ while True:
         elif cmd == 32:  # if the input pattern is "check that * is *"
             object, subject = params[1].split(" is ")
             subject = get_fuzzy_match(subject, food_groups)
-            if validate_expression(kb3, object, subject):
+            if validate_expression(kb, object, subject):
                 print("Correct")
             else:
                 #Check reverse expression to prove if there is an rule in knowledgebase (or not) that disproved original expression
-                if validate_expression(kb3, object, ("not " + subject)):
+                if validate_expression(kb, object, ("not " + subject)):
                     print("Incorrect")
                 else:
                     print("I'm not sure...")
         elif cmd == 33: # if input pattern is "I know that * and * are a pair"
             first, second = params[1].split(" and ")
             objects = first + "," + second
-            #if validate_expression(kb3, objects, "pair"):
-            text_expr = read_expr("food(" + first + ")")
-            print("here")
-            print(ResolutionProverCommand(text_expr, kb3).prove())
-            if validate_expression(kb3, first, "food") and validate_expression(kb3, second, "food"):
+            if validate_expression(kb, first, "food") and validate_expression(kb, second, "food"):
                 expr = read_expr(("pair" + "(" + objects + ")").lower())
-                if Mace(end_size=50).build_model(expr, kb3) == False:
+                if validate_expression(kb, objects, "pair"):
                     print("I already know that " + params[1] + " are a classic combination.")
                 else:
                     print("That new combo has been added!")
-                    kb3.append(read_expr("food(" + first + ") & food(" + second + ")"))
-                    kb3.append(read_expr("combo(" + objects + ")"))
+                    kb.append(read_expr("food(" + first + ") & food(" + second + ")"))
+                    kb.append(read_expr("combo(" + objects + ")"))
             else:
                print("Please use the input pattern 'I know that * is *' - To categorise these items as food before making them a pair.")
         elif cmd == 40: # if input pattern is "how much * is in *" or "how many * are in *"

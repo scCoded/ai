@@ -12,8 +12,6 @@ carbohydrate (mac)
 dairy (cheese)
 fat (butter)
 meat (chicken)
--food (tea)
-"(food(x) & food(y) & combo(x,y) -> pair(x,y))"
-"food(fish) & food(chips) & combo(fish,chips)"
-"-(combo(mac,cheese))"
-
+-food (tidepods)
+"food(x) & food(y) -> pair(x,y)"
+"food(fish) & food(chips)"
