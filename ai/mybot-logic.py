@@ -13,6 +13,11 @@ import time
 import speech_recognition as sr
 from gtts import gTTS
 import playsound
+import numpy as np
+import tensorflow as tf
+from PIL import Image
+import os.path
+import cv2
 
 read_expr = logic.Expression.fromstring
 
@@ -68,6 +73,16 @@ nutrients = {"calories": "ENERC_KCAL",
      "fat": "FATS", 
      "fiber" : "FIBTG", 
      "protein": "PROCNT"}
+
+#######################################################
+# Load in CNN module and 
+#######################################################
+# It can be used to reconstruct the model identically.
+model = tf.keras.models.load_model("cnn_model2.h5")
+img_size = (224, 224)
+folder = 'Food-5K/evaluation/'
+extension = '.jpg'
+
 #######################################################
 # Welcome user
 #######################################################
@@ -130,6 +145,24 @@ def print_with_audio(input_type, robot_input):
         tts = gTTS(text=robot_input, lang='en')
         tts.save("tts.mp3")
         playsound.playsound("tts.mp3")
+
+def does_image_exist(filename):
+    return os.path.exists(folder + filename + extension)
+        
+def take_image_from_webcam(filename):
+    cam = cv2.VideoCapture(0)   # 0 -> index of camera
+    s, img = cam.read()
+    if s:    # frame captured without any errors
+        cv2.imwrite(folder + filename + extension ,img) #save image
+
+def predict_image(input_type, filename):
+    img = Image.open(folder + filename + extension)
+    img.show()
+    img = img.resize(img_size)
+    img = np.array(img)
+    img = np.expand_dims(img, 0)
+    img = tf.cast(img, tf.float32)
+    print_with_audio(input_type,"yes this image does contain food" if model.predict(img) > 0.5 else "no food found")
 
 input_type = input("Choose 'text' or 'speech' based communication> ")
 
@@ -197,6 +230,11 @@ while True:
                         print_with_audio(input_type, "That new combo has been added!")
             else:
                 print_with_audio(input_type, "Please use the input pattern 'I know that * is *' - To categorise these items as food before making them a pair.")
+        elif cmd == 34: # if input pattern is "is there food in image *"
+            filename = params[1]
+            if not does_image_exist(filename):
+                take_image_from_webcam(filename) 
+            predict_image(input_type, filename)
         elif cmd == 40: # if input pattern is "how much * is in *" or "how many * are in *"
            nutrient, food = params[1].split(" is ")
            label = get_fuzzy_match(nutrient, nutrients)
