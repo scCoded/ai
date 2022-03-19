@@ -16,8 +16,12 @@ import playsound
 import numpy as np
 import tensorflow as tf
 from PIL import Image
-import os.path
+import os.path, re
 import cv2
+import requests
+import warnings
+
+warnings.filterwarnings("ignore")
 
 read_expr = logic.Expression.fromstring
 
@@ -154,12 +158,57 @@ def take_image_from_webcam(filename):
     s, img = cam.read()
     if s:    # frame captured without any errors
         cv2.imwrite(folder + filename + extension ,img) #save image
+#to fix
+"""
+def take_image_from_url(url):
+    filename = url.split('/')[-1]
+    try:
+        r = requests.get(url, allow_redirects=True)
+        open(folder + filename + extension, 'wb').write(r.content)
+        return filename
+    except requests.exceptions.ConnectionError:
+        print("issue")
+  
+        return "favicon.ico"
+
+def take_video_from_url(url):
+    video = YouTube('https://www.youtube.com/watch?v=NqC_1GuY3dw%27')
+    video.download()
+
+    yt = YouTube(url)
+    yt = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
+    yt.download(folder + url + '.mp4')
+   
+"""
+def predict_video(input_type, filename):
+    vid = cv2.VideoCapture(folder + filename + '.mp4')
+    i=0
+    while not vid.isOpened():
+        vid = cv2.VideoCapture(folder + filename + '.mp4')
+        cv2.waitKey(1000)
+    while True:
+        success, img = vid.read()
+        if success:
+            vid.set(cv2.CAP_PROP_POS_MSEC,(i*500))
+            print("Frame at " + str((i*500)/1000) + "seconds:")
+            cv2.imwrite(folder + "vid-img" + str(i) + extension ,img) #save image
+            predict_image(input_type, "vid-img" + str(i))
+            i+=1
+    
+        if vid.get(cv2.CAP_PROP_POS_FRAMES) == vid.get(cv2.CAP_PROP_FRAME_COUNT):
+            break
+    for f in os.listdir(folder):
+        if re.search('vid-img*', f):
+            os.remove(folder + f)
+
+
 
 def predict_image(input_type, filename):
     img = Image.open(folder + filename + extension)
     img.show()
     img = img.resize(img_size)
     img = np.array(img)
+    img = img[:, :, :3]
     img = np.expand_dims(img, 0)
     img = tf.cast(img, tf.float32)
     print_with_audio(input_type,"yes this image does contain food" if model.predict(img) > 0.5 else "no food found")
@@ -235,6 +284,9 @@ while True:
             if not does_image_exist(filename):
                 take_image_from_webcam(filename) 
             predict_image(input_type, filename)
+        elif cmd == 36: # if input pattern is "is there food in video *"  
+            filename = params[1]
+            predict_video(input_type, filename)
         elif cmd == 40: # if input pattern is "how much * is in *" or "how many * are in *"
            nutrient, food = params[1].split(" is ")
            label = get_fuzzy_match(nutrient, nutrients)

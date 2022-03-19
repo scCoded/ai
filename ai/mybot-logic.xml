@@ -53,6 +53,8 @@
 <category><pattern> IS THERE FOOD IN IMAGE *</pattern>
   <template>#34$<star index="1"/></template></category>
 
+<category><pattern> IS THERE FOOD IN VIDEO *</pattern>
+  <template>#36$<star index="1"/></template></category>
 <!-- Food reactions -->
 <category> <pattern> FOOD IS GREAT </pattern>
   <template>I agree </template> </category>

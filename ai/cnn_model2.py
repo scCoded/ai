@@ -7,6 +7,7 @@ from tensorflow import keras
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.applications import ResNet50
 from sklearn.metrics import classification_report
+from sklearn.model_selection import KFold
 
 img_size = (224, 224)
 shape=(224, 224, 3)
@@ -25,8 +26,8 @@ def get_dataframe(folder):
     df['class'] = labels
     return df
 
-train_images = get_dataframe('training')
-test_images = get_dataframe('validation')
+train_data = get_dataframe('training')
+test_data = get_dataframe('validation')
 
 def process_images(folder, df):
     datagen = ImageDataGenerator(
@@ -47,8 +48,8 @@ def process_images(folder, df):
         target_size=img_size,
     )
     
-train_generator = process_images('training', train_images)
-test_generator = process_images('validation', test_images)
+train = process_images('training', train_data)
+test = process_images('validation', test_data)
 
 # Initialize the CNN - Res net is 50 layers deep
 cnn = ResNet50(weights='imagenet', 
@@ -64,14 +65,18 @@ x = cnn(inputs, training=False)
 # pooling layer
 x = keras.layers.GlobalAveragePooling2D()(x)
 
-outputs = keras.layers.Dense(1, activation='sigmoid')(x)
+targets = keras.layers.Dense(1, activation='sigmoid')(x)
 
-model = tf.keras.Model(inputs, outputs)
+model = tf.keras.Model(inputs, targets)
 
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
-model.fit(train_generator, epochs=1, validation_data=test_generator)
+"""kfold = KFold(5, True, 1)
 
+for train, test in kfold.split(data):
+	print('train: %s, test: %s' % (data[train], data[test]))
+model.fit(train, epochs=1, validation_data=test)
+"""
 #evaluate
 """
 y_true = []
