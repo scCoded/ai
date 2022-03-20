@@ -20,6 +20,8 @@ import os.path, re
 import cv2
 import requests
 import warnings
+from azure.cognitiveservices.vision.customvision.prediction import CustomVisionPredictionClient
+from msrest.authentication import ApiKeyCredentials
 
 warnings.filterwarnings("ignore")
 
@@ -86,6 +88,12 @@ model = tf.keras.models.load_model("cnn_model2.h5")
 img_size = (224, 224)
 folder = 'Food-5K/evaluation/'
 extension = '.jpg'
+
+#task d - computer vision - azure image classification service 
+project_id = '0bc37a07-91b6-4c98-af39-64e82ae7b9f8'
+cv_key = 'be19ee9a2c2647c0b4f5e3181c592cdd'
+cv_endpoint = 'https://taskdvision-prediction.cognitiveservices.azure.com'
+model_name = 'food model'
 
 #######################################################
 # Welcome user
@@ -205,13 +213,27 @@ def predict_video(input_type, filename):
 
 def predict_image(input_type, filename):
     img = Image.open(folder + filename + extension)
-    img.show()
+    imgplot = plt.imshow(img)
+    plt.show()
     img = img.resize(img_size)
     img = np.array(img)
     img = img[:, :, :3]
     img = np.expand_dims(img, 0)
     img = tf.cast(img, tf.float32)
-    print_with_audio(input_type,"yes this image does contain food" if model.predict(img) > 0.5 else "no food found")
+    if model.predict(img) > 0.5:
+        print_with_audio(input_type,"yes this image does contain food")
+        azure_model(input_type, filename)
+    else:
+        print_with_audio(input_type, "no food found")
+        
+def azure_model(input_type, filename):
+    credentials = ApiKeyCredentials(in_headers={"Prediction-key": cv_key})
+    custom_vision_client = CustomVisionPredictionClient(endpoint=cv_endpoint, credentials=credentials)
+    image_contents = open(folder + filename + extension, "rb")
+    classification = custom_vision_client.classify_image(project_id, model_name, image_contents.read())
+    prediction = classification.predictions[0]
+    print_with_audio(input_type, prediction.tag_name if prediction.probability > 0.5 else "a food other than apple, banana, orange, burger, pizza or pasta.")
+
 
 input_type = input("Choose 'text' or 'speech' based communication> ")
 
