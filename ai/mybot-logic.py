@@ -18,10 +18,19 @@ import tensorflow as tf
 from PIL import Image
 import os.path, re
 import cv2
+import imutils
+
 import requests
 import warnings
 from azure.cognitiveservices.vision.customvision.prediction import CustomVisionPredictionClient
 from msrest.authentication import ApiKeyCredentials
+
+from reportlab.lib.enums import TA_JUSTIFY
+from reportlab.lib.pagesizes import letter,legal,landscape
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+import reportlab
 
 warnings.filterwarnings("ignore")
 
@@ -95,6 +104,10 @@ cv_key = 'be19ee9a2c2647c0b4f5e3181c592cdd'
 cv_endpoint = 'https://taskdvision-prediction.cognitiveservices.azure.com'
 model_name = 'food model'
 
+chatlog=[]
+doc = SimpleDocTemplate("chatlog.pdf",pagesize=letter,
+                        rightMargin=5,leftMargin=5,
+                        topMargin=72,bottomMargin=18)       
 #######################################################
 # Welcome user
 #######################################################
@@ -150,6 +163,7 @@ def get_audio():
             return("BYE")
 
 def print_with_audio(input_type, robot_input):
+    chatlog.append(Paragraph(robot_input))
     if input_type == 'text':
         print(robot_input)
     else:
@@ -160,34 +174,13 @@ def print_with_audio(input_type, robot_input):
 
 def does_image_exist(filename):
     return os.path.exists(folder + filename + extension)
-        
+
 def take_image_from_webcam(filename):
     cam = cv2.VideoCapture(0)   # 0 -> index of camera
     s, img = cam.read()
     if s:    # frame captured without any errors
         cv2.imwrite(folder + filename + extension ,img) #save image
-#to fix
-"""
-def take_image_from_url(url):
-    filename = url.split('/')[-1]
-    try:
-        r = requests.get(url, allow_redirects=True)
-        open(folder + filename + extension, 'wb').write(r.content)
-        return filename
-    except requests.exceptions.ConnectionError:
-        print("issue")
-  
-        return "favicon.ico"
 
-def take_video_from_url(url):
-    video = YouTube('https://www.youtube.com/watch?v=NqC_1GuY3dw%27')
-    video.download()
-
-    yt = YouTube(url)
-    yt = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
-    yt.download(folder + url + '.mp4')
-   
-"""
 def predict_video(input_type, filename):
     vid = cv2.VideoCapture(folder + filename + '.mp4')
     i=0
@@ -196,23 +189,20 @@ def predict_video(input_type, filename):
         cv2.waitKey(1000)
     while True:
         success, img = vid.read()
+        img = imutils.resize(img, width=320)
         if success:
             vid.set(cv2.CAP_PROP_POS_MSEC,(i*500))
-            print("Frame at " + str((i*500)/1000) + "seconds:")
-            cv2.imwrite(folder + "vid-img" + str(i) + extension ,img) #save image
-            predict_image(input_type, "vid-img" + str(i))
+            cv2.imwrite(folder + filename + str(i) + extension ,img) #save image
+            predict_image(input_type, filename + str(i))
             i+=1
     
         if vid.get(cv2.CAP_PROP_POS_FRAMES) == vid.get(cv2.CAP_PROP_FRAME_COUNT):
             break
-    for f in os.listdir(folder):
-        if re.search('vid-img*', f):
-            os.remove(folder + f)
-
-
 
 def predict_image(input_type, filename):
     img = Image.open(folder + filename + extension)
+    chatlog.append(reportlab.platypus.Image(folder + filename + extension))
+    chatlog.append(Spacer(1, 12))
     imgplot = plt.imshow(img)
     plt.show()
     img = img.resize(img_size)
@@ -245,9 +235,11 @@ while True:
         else:
             user_input = get_audio()
             print("> " + user_input)
+        chatlog.append(Paragraph("> " + user_input))
             
     except (KeyboardInterrupt, EOFError) as e:
         print("Bye!")
+        doc.build(chatlog)
         break
     answer = kern.respond(user_input)
     # post-process the answer for commands
