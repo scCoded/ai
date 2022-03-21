@@ -51,7 +51,7 @@
   <template>#33$<star index="1"/> and <star index="2"/></template></category>
   
 <category><pattern> IS THERE FOOD IN IMAGE *</pattern>
-  <template>#34$<star index="1"/></template></category>
+  <template>#35$<star index="1"/></template></category>
 
 <category><pattern> IS THERE FOOD IN VIDEO *</pattern>
   <template>#36$<star index="1"/></template></category>

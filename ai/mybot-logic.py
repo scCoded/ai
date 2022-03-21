@@ -82,7 +82,7 @@ url = "https://api.edamam.com/api/nutrition-data?app_id=a4db010c&app_key=%200596
 nutrients = {"calories": "ENERC_KCAL", 
      "carbs" : "CHOCDF", 
      "carbohydrates": "CHOCDF",
-     "fat": "FATS", 
+     "fat": "FATS",
      "fiber" : "FIBTG", 
      "protein": "PROCNT"}
 
@@ -90,9 +90,9 @@ nutrients = {"calories": "ENERC_KCAL",
 # Load in CNN module and 
 #######################################################
 # It can be used to reconstruct the model identically.
-model = tf.keras.models.load_model("cnn_model2.h5")
+model = tf.keras.models.load_model("cnn_model.h5")
 img_size = (224, 224)
-folder = 'Food-5K/evaluation/'
+folder = 'media-for-chatbot/'
 extension = '.jpg'
 
 #task d - computer vision - azure image classification service 
@@ -102,7 +102,7 @@ cv_endpoint = 'https://taskdvision-prediction.cognitiveservices.azure.com'
 model_name = 'food model'
 
 chatlog=[]
-chatlog.append(Paragraph("Chatlog from date time: " + str(time.ctime())))
+chatlog.append(Paragraph("CHATLOG FOR DATE-TIME: " + str(time.ctime())))
 doc = SimpleDocTemplate("chatlog.pdf",pagesize=letter,
                         rightMargin=5,leftMargin=5,
                         topMargin=72,bottomMargin=18)  
@@ -182,8 +182,8 @@ def print_with_audio(robot_input):
         while pygame.mixer.music.get_busy():
             time.sleep(0.1)
 
-def does_image_exist(filename):
-    return os.path.exists(folder + filename + extension)
+def does_image_exist(filename, ext):
+    return os.path.exists(folder + filename + ext)
 
 def take_image_from_webcam(filename):
     cam = cv2.VideoCapture(0)   # 0 -> index of camera
@@ -202,6 +202,7 @@ def predict_video(filename):
         img = imutils.resize(img, width=180)
         if success:
             vid.set(cv2.CAP_PROP_POS_MSEC,(i*500))
+            print("Frame at " + str((i*500)/1000) + "seconds:")
             cv2.imwrite(folder + filename + str(i) + extension ,img) #save image
             predict_image(filename + str(i))
             i+=1
@@ -302,18 +303,21 @@ while True:
                         print_with_audio("That new combo has been added!")
             else:
                 print_with_audio("Please use the input pattern 'I know that * is *' - To categorise these items as food before making them a pair.")
-        elif cmd == 34: # if input pattern is "is there food in image *"
+        elif cmd == 35: # if input pattern is "is there food in image *"
             filename = params[1]
-            if not does_image_exist(filename):
+            if not does_image_exist(filename, extension):
                 take_image_from_webcam(filename) 
             predict_image(filename)
         elif cmd == 36: # if input pattern is "is there food in video *"  
             filename = params[1]
-            predict_video(filename)
+            if does_image_exist(filename, ".mp4"):
+                predict_video(filename)
+            else:
+                print_with_audio("this video does not exist")
         elif cmd == 37: # if input pattern is "email this chat"
             doc.build(chatlog)
             block_blob_service.create_blob_from_path(container_name, "chatlog.pdf", "chatlog.pdf")
-            print_with_audio("emailed the this chat to admin")
+            print_with_audio("success - emailed this chat to the admin")
         elif cmd == 40: # if input pattern is "how much * is in *" or "how many * are in *"
            nutrient, food = params[1].split(" is ")
            if "image" in food:
