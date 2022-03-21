@@ -12,14 +12,13 @@ import matplotlib.pyplot as plt
 import time
 import speech_recognition as sr
 from gtts import gTTS
-import playsound
+import pygame
 import numpy as np
 import tensorflow as tf
 from PIL import Image
-import os.path, re
+import os.path
 import cv2
 import imutils
-import requests
 import warnings
 from azure.cognitiveservices.vision.customvision.prediction import CustomVisionPredictionClient
 from msrest.authentication import ApiKeyCredentials
@@ -51,6 +50,7 @@ if ResolutionProver().prove(None, kb, verbose=False):
 """
 if Prover9Command(assumptions=kb).prove():
    sys.exit("The Knowledgebase is not consistent - Please remove any contradictions and run this program again.")
+
 
 #end = time.time()
 #print("Time taken: " + str(round(end - start, 3)) + " seconds") 
@@ -117,6 +117,7 @@ block_blob_service = BlockBlobService(
 # Welcome user
 #######################################################
 print("Welcome to this chat bot. Please feel free to ask questions from me!")
+input_type = ''
 #######################################################
 # Main loop
 #######################################################
@@ -167,7 +168,7 @@ def get_audio():
         except:
             return("BYE")
 
-def print_with_audio(input_type, robot_input):
+def print_with_audio(robot_input):
     chatlog.append(Paragraph(robot_input))
     if input_type == 'text':
         print(robot_input)
@@ -175,7 +176,11 @@ def print_with_audio(input_type, robot_input):
         print(robot_input)
         tts = gTTS(text=robot_input, lang='en')
         tts.save("tts.mp3")
-        playsound.playsound("tts.mp3")
+        pygame.mixer.init()
+        pygame.mixer.music.load("tts.mp3")
+        pygame.mixer.music.play()
+        while pygame.mixer.music.get_busy():
+            time.sleep(0.1)
 
 def does_image_exist(filename):
     return os.path.exists(folder + filename + extension)
@@ -183,10 +188,10 @@ def does_image_exist(filename):
 def take_image_from_webcam(filename):
     cam = cv2.VideoCapture(0)   # 0 -> index of camera
     s, img = cam.read()
-    if s:    # frame captured without any errors
+    if s:
         cv2.imwrite(folder + filename + extension ,img) #save image
 
-def predict_video(input_type, filename):
+def predict_video(filename):
     vid = cv2.VideoCapture(folder + filename + '.mp4')
     i=0
     while not vid.isOpened():
@@ -198,13 +203,13 @@ def predict_video(input_type, filename):
         if success:
             vid.set(cv2.CAP_PROP_POS_MSEC,(i*500))
             cv2.imwrite(folder + filename + str(i) + extension ,img) #save image
-            predict_image(input_type, filename + str(i))
+            predict_image(filename + str(i))
             i+=1
     
         if vid.get(cv2.CAP_PROP_POS_FRAMES) == vid.get(cv2.CAP_PROP_FRAME_COUNT):
             break
 
-def predict_image(input_type, filename):
+def predict_image(filename):
     img = Image.open(folder + filename + extension)
     chatlog.append(reportlab.platypus.Image(folder + filename + extension))
     imgplot = plt.imshow(img)
@@ -215,19 +220,20 @@ def predict_image(input_type, filename):
     img = np.expand_dims(img, 0)
     img = tf.cast(img, tf.float32)
     if model.predict(img) > 0.5:
-        print_with_audio(input_type,"yes this image does contain food")
-        azure_model(input_type, filename)
+        print_with_audio("yes this image does contain food")
+        return azure_model(filename)
     else:
-        print_with_audio(input_type, "no food found")
+        print_with_audio("no food found")
+        return "unknown"
         
-def azure_model(input_type, filename):
+def azure_model(filename):
     credentials = ApiKeyCredentials(in_headers={"Prediction-key": cv_key})
     custom_vision_client = CustomVisionPredictionClient(endpoint=cv_endpoint, credentials=credentials)
     image_contents = open(folder + filename + extension, "rb")
     classification = custom_vision_client.classify_image(project_id, model_name, image_contents.read())
     prediction = classification.predictions[0]
-    print_with_audio(input_type, prediction.tag_name if prediction.probability > 0.5 else "a food other than apple, banana, orange, burger, pizza or pasta.")
-
+    print_with_audio(prediction.tag_name if prediction.probability > 0.5 else "a food other than apple, banana, orange, burger, pizza or pasta.")
+    return prediction.tag_name if prediction.probability > 0.5 else "unknown"
 
 input_type = input("Choose 'text' or 'speech' based communication> ")
 
@@ -242,7 +248,7 @@ while True:
         chatlog.append(Paragraph("> " + user_input))
             
     except (KeyboardInterrupt, EOFError) as e:
-        print("Bye!")
+        print_with_audio("Bye!")
         break
     answer = kern.respond(user_input)
     # post-process the answer for commands
@@ -259,26 +265,26 @@ while True:
             object = get_fuzzy_match(object, common_foods)
             subject = get_fuzzy_match(subject, food_groups)
             if validate_expression(object, subject):
-                print_with_audio(input_type, "I already knew that")
+                print_with_audio("I already knew that")
             else:
                 #Check reverse expression to prove if there is an rule in knowledgebase (or not) that disproved original expression
                 if validate_expression(object, ("not " + subject)):
-                    print_with_audio(input_type, "I can see that is NOT true")
+                    print_with_audio("I can see that is NOT true")
                 else:
-                    print_with_audio(input_type, ("OK, I will remember that " + object + " is " + subject))
+                    print_with_audio(("OK, I will remember that " + object + " is " + subject))
                     kb.append(read_expr(subject + "(" + object + ")"))
         elif cmd == 32:  # if the input pattern is "check that * is *"
             object, subject = params[1].split(" is ")
             object = get_fuzzy_match(object, common_foods)
             subject = get_fuzzy_match(subject, food_groups)
             if validate_expression(object, subject):
-                print_with_audio(input_type, "Correct")
+                print_with_audio("Correct")
             else:
                 #Check reverse expression to prove if there is an rule in knowledgebase (or not) that disproved original expression
                 if validate_expression(object, ("not " + subject)):
-                    print_with_audio(input_type, "Incorrect")
+                    print_with_audio("Incorrect")
                 else:
-                    print_with_audio(input_type, "I'm not sure...")
+                    print_with_audio("I'm not sure...")
         elif cmd == 33: # if input pattern is "I know that * and * are a pair"
             first, second = params[1].split(" and ")
             first = get_fuzzy_match(first, common_foods)
@@ -286,30 +292,32 @@ while True:
             objects = first + "," + second
             if (validate_expression(first, "food") and validate_expression(second, "food")):
                 if validate_expression(objects, "not combo"):
-                    print_with_audio(input_type, "I can see that is NOT a tasty combo!")
+                    print_with_audio("I can see that is NOT a tasty combo!")
                 else:
                     if validate_expression(objects, "pair"):
-                        print_with_audio(input_type, ("I already know that " + params[1] + " are a classic combination."))
+                        print_with_audio(("I already know that " + params[1] + " are a classic combination."))
                     else:
                         kb.append(read_expr("food(" + first + ") & food(" + second + ")"))
                         kb.append(read_expr("combo(" + objects + ")"))
-                        print_with_audio(input_type, "That new combo has been added!")
+                        print_with_audio("That new combo has been added!")
             else:
-                print_with_audio(input_type, "Please use the input pattern 'I know that * is *' - To categorise these items as food before making them a pair.")
+                print_with_audio("Please use the input pattern 'I know that * is *' - To categorise these items as food before making them a pair.")
         elif cmd == 34: # if input pattern is "is there food in image *"
             filename = params[1]
             if not does_image_exist(filename):
                 take_image_from_webcam(filename) 
-            predict_image(input_type, filename)
+            predict_image(filename)
         elif cmd == 36: # if input pattern is "is there food in video *"  
             filename = params[1]
-            predict_video(input_type, filename)
+            predict_video(filename)
         elif cmd == 37: # if input pattern is "email this chat"
             doc.build(chatlog)
             block_blob_service.create_blob_from_path(container_name, "chatlog.pdf", "chatlog.pdf")
-            print_with_audio(input_type, "emailed the this chat to admin")
+            print_with_audio("emailed the this chat to admin")
         elif cmd == 40: # if input pattern is "how much * is in *" or "how many * are in *"
            nutrient, food = params[1].split(" is ")
+           if "image" in food:
+               food = predict_image(food.split(" ",1)[1])
            label = get_fuzzy_match(nutrient, nutrients)
            food = get_fuzzy_match(food, common_foods)
            key = nutrients.get(label)
@@ -317,11 +325,13 @@ while True:
            try:
                nutrient_data = response.json()["totalNutrients"][key]
                food = food.replace("_", " ").replace("-", " ")
-               print_with_audio(input_type, ("Amount of " + label +  " in " + food + " is: " + str(round(nutrient_data["quantity"])) + nutrient_data["unit"]))
+               print_with_audio(("Amount of " + label +  " in " + food + " is: " + str(round(nutrient_data["quantity"])) + nutrient_data["unit"]))
            except KeyError:
-               print("That food was not found. Check spelling.")
+               print_with_audio("That food was not found. Check spelling.")
         elif cmd == 41: # if input pattern is "what is the full nutrition for *" or "nutrition for *"
            food = user_input.split("for ",1)[1]
+           if "image" in food:
+               food = predict_image(food.split(" ",1)[1])
            food = get_fuzzy_match(food, common_foods)
            response = requests.get(url + food.replace("_", "+").replace("-", "+"))
            nutrient_data = response.json()
@@ -369,12 +379,12 @@ while True:
                 try:
                     fuzzy_question = get_fuzzy_match(user_input,qa_questions)
                     i = questions.index(fuzzy_question)
-                    print_with_audio(input_type, answers[i-1])
+                    print_with_audio(answers[i-1])
                 except (IndexError, ValueError) as e:
-                    print_with_audio(input_type, "Hey I don't understand what you just wrote to me...")
+                    print_with_audio("Hey I don't understand what you just wrote to me...")
             else:
-                print_with_audio(input_type, answers[j-1])
+                print_with_audio(answers[j-1])
             
     else:
-        print_with_audio(input_type, answer)
+        print_with_audio(answer)
         
