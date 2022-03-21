@@ -19,18 +19,15 @@ from PIL import Image
 import os.path, re
 import cv2
 import imutils
-
 import requests
 import warnings
 from azure.cognitiveservices.vision.customvision.prediction import CustomVisionPredictionClient
 from msrest.authentication import ApiKeyCredentials
-
-from reportlab.lib.enums import TA_JUSTIFY
-from reportlab.lib.pagesizes import letter,legal,landscape
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
 import reportlab
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph
+from azure.storage.blob import BlockBlobService
+
 
 warnings.filterwarnings("ignore")
 
@@ -105,9 +102,17 @@ cv_endpoint = 'https://taskdvision-prediction.cognitiveservices.azure.com'
 model_name = 'food model'
 
 chatlog=[]
+chatlog.append(Paragraph("Chatlog from date time: " + str(time.ctime())))
 doc = SimpleDocTemplate("chatlog.pdf",pagesize=letter,
                         rightMargin=5,leftMargin=5,
-                        topMargin=72,bottomMargin=18)       
+                        topMargin=72,bottomMargin=18)  
+
+container_name = 'taskd-container'
+
+block_blob_service = BlockBlobService(
+    account_name='taskd',
+    account_key='UIEKLybYGT7o/iEVH37Ff/GFdccgyBiw+/7PNyayYSfHzsWjEQMXykEY69mIeVzJjKxPZ1t7F2TCVSXsqx+oTg=='
+)     
 #######################################################
 # Welcome user
 #######################################################
@@ -189,7 +194,7 @@ def predict_video(input_type, filename):
         cv2.waitKey(1000)
     while True:
         success, img = vid.read()
-        img = imutils.resize(img, width=320)
+        img = imutils.resize(img, width=180)
         if success:
             vid.set(cv2.CAP_PROP_POS_MSEC,(i*500))
             cv2.imwrite(folder + filename + str(i) + extension ,img) #save image
@@ -202,7 +207,6 @@ def predict_video(input_type, filename):
 def predict_image(input_type, filename):
     img = Image.open(folder + filename + extension)
     chatlog.append(reportlab.platypus.Image(folder + filename + extension))
-    chatlog.append(Spacer(1, 12))
     imgplot = plt.imshow(img)
     plt.show()
     img = img.resize(img_size)
@@ -239,7 +243,6 @@ while True:
             
     except (KeyboardInterrupt, EOFError) as e:
         print("Bye!")
-        doc.build(chatlog)
         break
     answer = kern.respond(user_input)
     # post-process the answer for commands
@@ -301,6 +304,10 @@ while True:
         elif cmd == 36: # if input pattern is "is there food in video *"  
             filename = params[1]
             predict_video(input_type, filename)
+        elif cmd == 37: # if input pattern is "email this chat"
+            doc.build(chatlog)
+            block_blob_service.create_blob_from_path(container_name, "chatlog.pdf", "chatlog.pdf")
+            print_with_audio(input_type, "emailed the this chat to admin")
         elif cmd == 40: # if input pattern is "how much * is in *" or "how many * are in *"
            nutrient, food = params[1].split(" is ")
            label = get_fuzzy_match(nutrient, nutrients)
